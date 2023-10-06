@@ -17,14 +17,12 @@ void swap(int *lnum, int *rnum)
 typedef struct
 {
     int size;
-    int valid_size;
     int array[kHEAP_CAPACITY];
 } min_heap;
 
 void init_min_heap(min_heap *min_heap_ptr)
 {
     min_heap_ptr->size = 0;
-    min_heap_ptr->valid_size = 0;
     return;
 }
 
@@ -32,10 +30,8 @@ void insert_min_heap(min_heap *min_heap_ptr, const int element)
 {
     int *heap_array = min_heap_ptr->array;
     int *heap_size = &min_heap_ptr->size;
-    int *heap_valid_size = &min_heap_ptr->valid_size;
     heap_array[*heap_size] = element;
     (*heap_size)++;
-    (*heap_valid_size)++;
 
     int now_idx = *heap_size - 1;
     int parent_idx = (now_idx - 1) >> 1;
@@ -48,7 +44,7 @@ void insert_min_heap(min_heap *min_heap_ptr, const int element)
     }
     return;
 }
-
+//+1 size, valid size
 const int delete_min_heap(min_heap *min_heap_ptr)
 {
     int *heap_array = min_heap_ptr->array;
@@ -83,7 +79,7 @@ const int delete_min_heap(min_heap *min_heap_ptr)
     }
     return heap_array[*heap_size];
 }
-// empty 검사는 pq 에서 함
+//-1 size, empty 검사는 pq 에서 함
 const int find_min_heap(min_heap *min_heap_ptr)
 {
     return min_heap_ptr->array[0];
@@ -92,14 +88,12 @@ const int find_min_heap(min_heap *min_heap_ptr)
 typedef struct
 {
     int size;
-    int valid_size;
     int array[kHEAP_CAPACITY];
 } max_heap;
 
 void init_max_heap(max_heap *max_heap_ptr)
 {
     max_heap_ptr->size = 0;
-    max_heap_ptr->valid_size = 0;
     return;
 }
 
@@ -107,10 +101,8 @@ void insert_max_heap(max_heap *max_heap_ptr, const int element)
 {
     int *heap_array = max_heap_ptr->array;
     int *heap_size = &max_heap_ptr->size;
-    int *heap_valid_size = &max_heap_ptr->valid_size;
     heap_array[*heap_size] = element;
     (*heap_size)++;
-    (*heap_valid_size)++;
 
     int now_idx = *heap_size - 1;
     int parent_idx = (now_idx - 1) >> 1;
@@ -167,7 +159,6 @@ const int find_max_heap(max_heap *max_heap_ptr)
 typedef struct
 {
     int size;
-    int valid_size;
     max_heap left_heap;
     min_heap right_heap;
 } median_heap;
@@ -175,14 +166,19 @@ typedef struct
 void init_median_heap(median_heap *median_heap_ptr)
 {
     median_heap_ptr->size = 0;
-    median_heap_ptr->valid_size = 0;
     init_max_heap(&median_heap_ptr->left_heap);
     init_min_heap(&median_heap_ptr->right_heap);
 }
 
 void insert_median_heap(median_heap *median_heap_ptr, const int element)
 {
+    int *heap_size = &median_heap_ptr->size;
+
+    max_heap *left_heap = &median_heap_ptr->left_heap;
+    min_heap *right_heap = &median_heap_ptr->right_heap;
+
     const int pivot = find_max_heap(&median_heap_ptr->left_heap);
+
 
     // while(1)
     // valid value check move left heap to right heap
@@ -193,7 +189,10 @@ void insert_median_heap(median_heap *median_heap_ptr, const int element)
 
 const int delete_median_heap(median_heap *median_heap_ptr) {}
 // empty 검사는 pq 에서 함
-const int find_median_heap(median_heap *median_heap_ptr) {}
+const int find_median_heap(median_heap *median_heap_ptr)
+{
+    return find_max_heap(&median_heap_ptr->left_heap);
+}
 // empty 검사는 pq 에서함
 
 typedef struct
@@ -234,6 +233,8 @@ void insert(int element)
 
 int delete_min()
 {
+    const int deleted_min=delete_min_heap(&pq.min_pq);
+    
 }
 
 int delete_max()
