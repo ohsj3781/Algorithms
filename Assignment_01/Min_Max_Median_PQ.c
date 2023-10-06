@@ -33,7 +33,7 @@ void insert_min_heap(min_heap *min_heap_ptr, const int element)
     int *heap_array = min_heap_ptr->array;
     int *heap_size = &min_heap_ptr->size;
     int *heap_valid_size = &min_heap_ptr->valid_size;
-    heap_array[min_heap_ptr->size] = element;
+    heap_array[*heap_size] = element;
     (*heap_size)++;
     (*heap_valid_size)++;
 
@@ -63,7 +63,7 @@ const int delete_min_heap(min_heap *min_heap_ptr)
     while (left_idx < *heap_size)
     {
         int compare_idx;
-        if (right_idx < min_heap_ptr->size)
+        if (right_idx < *heap_size)
         {
             compare_idx = heap_array[left_idx] < heap_array[right_idx] ? left_idx : right_idx;
         }
@@ -105,23 +105,58 @@ void init_max_heap(max_heap *max_heap_ptr)
 
 void insert_max_heap(max_heap *max_heap_ptr, const int element)
 {
-    max_heap_ptr->array[max_heap_ptr->size] = element;
-    max_heap_ptr->size++;
-    max_heap_ptr->valid_size++;
+    int *heap_array = max_heap_ptr->array;
+    int *heap_size = &max_heap_ptr->size;
+    int *heap_valid_size = &max_heap_ptr->valid_size;
+    heap_array[*heap_size] = element;
+    (*heap_size)++;
+    (*heap_valid_size)++;
 
-    int now_idx = max_heap_ptr->size - 1;
+    int now_idx = *heap_size - 1;
     int parent_idx = (now_idx - 1) >> 1;
 
-    while (now_idx > 0 && max_heap_ptr->array[now_idx] > max_heap_ptr->array[parent_idx])
+    while (now_idx > 0 && heap_array[now_idx] > heap_array[parent_idx])
     {
-        swap(&max_heap_ptr->array[now_idx], &max_heap_ptr->array[parent_idx]);
+        swap(&heap_array[now_idx], &heap_array[parent_idx]);
         now_idx = parent_idx;
         parent_idx = (now_idx - 1) >> 1;
     }
+    return;
 }
 
 const int delete_max_heap(max_heap *max_heap_ptr)
 {
+    int *heap_array = max_heap_ptr->array;
+    int *heap_size = &max_heap_ptr->size;
+    swap(&heap_array[0], &heap_array[*heap_size - 1]);
+    (*heap_size)--;
+
+    int now_idx = 0;
+    int left_idx = 2 * now_idx + 1;
+    int right_idx = 2 * now_idx + 2;
+
+    while (left_idx < *heap_size)
+    {
+        int compare_idx;
+        if (right_idx < *heap_size)
+        {
+            compare_idx = heap_array[left_idx] > heap_array[right_idx] ? left_idx : right_idx;
+        }
+        else
+        {
+            compare_idx = left_idx;
+        }
+
+        if (heap_array[now_idx] > heap_array[compare_idx])
+        {
+            break;
+        }
+        swap(&heap_array[now_idx], &heap_array[compare_idx]);
+        now_idx = compare_idx;
+        left_idx = 2 * now_idx + 1;
+        right_idx = 2 * now_idx + 2;
+    }
+    return heap_array[*heap_size];
 }
 // empty 검사는 pq 에서 함
 const int find_max_heap(max_heap *max_heap_ptr)
@@ -236,16 +271,5 @@ int main()
     //     // get user_input
     // }
 
-
-    min_heap temp_min_heap;
-    int input[]={8,7,6,5,4,3,2,1};
-
-    for(int i=0;i<sizeof(input)/sizeof(int);++i){
-        insert_min_heap(&temp_min_heap,input[i]);
-    }
-
-    for(int i=0;i<sizeof(input)/sizeof(int);++i){
-        printf("min_heap[%d] : %d\n",i,find_min_heap(&temp_min_heap));
-    }
     return 0;
-} 
+}
