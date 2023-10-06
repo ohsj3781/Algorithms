@@ -177,17 +177,53 @@ void insert_median_heap(median_heap *median_heap_ptr, const int element)
     max_heap *left_heap = &median_heap_ptr->left_heap;
     min_heap *right_heap = &median_heap_ptr->right_heap;
 
+    (*heap_size)++;
+    if (*heap_size == 0)
+    {
+        insert_max_heap(left_heap, element);
+        return;
+    }
+
     const int pivot = find_max_heap(&median_heap_ptr->left_heap);
 
+    if (element < pivot)
+    {
+        insert_max_heap(left_heap, element);
 
-    // while(1)
-    // valid value check move left heap to right heap
-
-    // while(1)
-    // valid value check move right heap to left heap
+        while (left_heap->size > right_heap->size + 1)
+        {
+            const int temp_element = delete_max_heap(left_heap);
+            insert_min_heap(right_heap, temp_element);
+        }
+    }
+    else
+    {
+        insert_min_heap(right_heap, element);
+        while (left_heap->size < right_heap->size)
+        {
+            const int temp_element = delete_min_heap(right_heap);
+            insert_max_heap(left_heap, temp_element);
+        }
+    }
+    return;
 }
 
-const int delete_median_heap(median_heap *median_heap_ptr) {}
+const int delete_median_heap(median_heap *median_heap_ptr)
+{
+    int *heap_size = &median_heap_ptr->size;
+
+    max_heap *left_heap = &median_heap_ptr->left_heap;
+    min_heap *right_heap = &median_heap_ptr->right_heap;
+    (*heap_size)--;
+
+    const int deleted_element =delete_max_heap(left_heap);
+
+    while(left_heap->size<right_heap->size){
+        const int temp_element=delete_min_heap(right_heap);
+        insert_max_heap(left_heap,temp_element);
+    }
+    return deleted_element;
+}
 // empty 검사는 pq 에서 함
 const int find_median_heap(median_heap *median_heap_ptr)
 {
@@ -233,8 +269,7 @@ void insert(int element)
 
 int delete_min()
 {
-    const int deleted_min=delete_min_heap(&pq.min_pq);
-    
+    const int deleted_min = delete_min_heap(&pq.min_pq);
 }
 
 int delete_max()
