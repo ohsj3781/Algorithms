@@ -3,8 +3,6 @@
 #include <string.h>
 #define kUSER_INPUT_SIZE 64
 
-static char user_input[kUSER_INPUT_SIZE];
-
 typedef struct
 {
     int value;
@@ -36,17 +34,21 @@ typedef struct
     int *array;
 } heap;
 
-void init_heap(heap *min_heap_ptr, const int N)
+void init_heap(heap *heap_ptr, const int N)
 {
-    min_heap_ptr->size = 0;
-    min_heap_ptr->valid_size = 0;
-    min_heap_ptr->array = (int *)calloc(N, sizeof(int));
+    heap_ptr->size = 0;
+    heap_ptr->valid_size = 0;
+    heap_ptr->array = (int *)calloc(N, sizeof(int));
     return;
+}
+
+void free_heap(heap *heap_ptr)
+{
+    free(heap_ptr->array);
 }
 
 typedef struct
 {
-    int size;
     int valid_size;
     heap left_max_heap;
     heap right_min_heap;
@@ -54,11 +56,16 @@ typedef struct
 
 void init_median_heap(median_heap *median_heap_ptr, const int N)
 {
-    median_heap_ptr->size = 0;
     median_heap_ptr->valid_size = 0;
     init_heap(&median_heap_ptr->left_max_heap, N);
     init_heap(&median_heap_ptr->right_min_heap, N);
     return;
+}
+
+void free_median_heap(median_heap *median_heap_ptr)
+{
+    free_heap(&median_heap_ptr->left_max_heap);
+    free_heap(&median_heap_ptr->right_min_heap);
 }
 
 typedef struct
@@ -78,7 +85,14 @@ void init_pq(priority_queue *pq_ptr, const int N)
     pq_ptr->data_array = (data *)calloc(N, sizeof(data));
     init_heap(&pq_ptr->min_pq, N);
     init_heap(&pq_ptr->max_pq, N);
-    // init_median_heap(&pq_ptr->median_pq, N);
+    init_median_heap(&pq_ptr->median_pq, N);
+}
+
+void free_pq(priority_queue *pq_ptr)
+{
+    free_heap(&pq_ptr->min_pq);
+    free_heap(&pq_ptr->max_pq);
+    free_median_heap(&pq_ptr->median_pq);
 }
 
 void insert_heap(heap *heap_ptr, const int element_idx, const int (*compare)(const data now, const data parent))
@@ -96,6 +110,8 @@ void insert_heap(heap *heap_ptr, const int element_idx, const int (*compare)(con
 
     while (now_idx > 0 && compare(pq.data_array[heap_arr[now_idx]], pq.data_array[heap_arr[parent_idx]]))
     {
+        data now = pq.data_array[heap_arr[now_idx]];
+        data parent = pq.data_array[heap_arr[parent_idx]];
         swap(&heap_arr[now_idx], &heap_arr[parent_idx]);
         now_idx = parent_idx;
         parent_idx = (now_idx - 1) / 2;
@@ -103,19 +119,15 @@ void insert_heap(heap *heap_ptr, const int element_idx, const int (*compare)(con
     return;
 }
 
-const int delete_heap(heap *heap_ptr, const int (*compare)(const data now, const data parent))
+data *delete_heap(heap *heap_ptr, const int (*compare)(const data now, const data parent))
 {
-    if (heap_ptr->valid_size <= 0)
-    {
-        return -1;
-    }
     int *heap_size = &heap_ptr->size;
     int *heap_valid_size = &heap_ptr->valid_size;
     int *heap_arr = heap_ptr->array;
     data *data_arr = pq.data_array;
 
     int valid_data_shown = 0;
-    int deleted_value = 0;
+    data *deleted_data_ptr = NULL;
 
     while (*heap_size > 0 && *heap_valid_size > 0)
     {
@@ -132,8 +144,7 @@ const int delete_heap(heap *heap_ptr, const int (*compare)(const data now, const
 
         if (data_arr[heap_arr[*heap_size]].deleted == 0)
         {
-            deleted_value = data_arr[heap_arr[*heap_size]].value;
-            data_arr[heap_arr[*heap_size]].deleted++;
+            deleted_data_ptr = &data_arr[heap_arr[*heap_size]];
             (*heap_valid_size)--;
         }
         // valid data
@@ -163,12 +174,118 @@ const int delete_heap(heap *heap_ptr, const int (*compare)(const data now, const
             right_child_idx = 2 * now_idx + 2;
         }
     }
-    return deleted_value;
+    return deleted_data_ptr;
 }
 
-const int find_heap(heap *heap_ptr)
+data *find_heap(heap *heap_ptr, const int (*compare)(const data now, const data parent))
 {
-    return pq.data_array[heap_ptr->array[0]].value;
+    int *heap_size = &heap_ptr->size;
+    int *heap_valid_size = &heap_ptr->valid_size;
+    int *heap_arr = heap_ptr->array;
+    data *data_arr = pq.data_array;
+
+    while (*heap_size > 0 && *heap_valid_size > 0 && data_arr[heap_arr[0]].deleted > 0)
+    {
+        // if second valid data shown break delete datas
+        swap(&heap_arr[0], &heap_arr[*heap_size - 1]);
+        (*heap_size)--;
+
+        int now_idx = 0;
+        int left_child_idx = 2 * now_idx + 1;
+        int right_child_idx = 2 * now_idx + 2;
+        int compare_idx;
+
+        while (left_child_idx < *heap_size)
+        {
+            if (right_child_idx < *heap_size)
+            {
+                compare_idx = compare(data_arr[heap_arr[left_child_idx]], data_arr[heap_arr[right_child_idx]]) ? left_child_idx : right_child_idx;
+            }
+            else
+            {
+                compare_idx = left_child_idx;
+            }
+            if (compare(data_arr[heap_arr[now_idx]], data_arr[heap_arr[compare_idx]]))
+            {
+                break;
+            }
+            swap(&heap_arr[now_idx], &heap_arr[compare_idx]);
+            now_idx = compare_idx;
+            left_child_idx = 2 * now_idx + 1;
+            right_child_idx = 2 * now_idx + 2;
+        }
+    }
+    return &pq.data_array[heap_ptr->array[0]];
+}
+
+void insert_median_heap(median_heap *heap_ptr, const int element_idx)
+{
+    int *heap_valid_size = &heap_ptr->valid_size;
+
+    if ((*heap_valid_size)++ == 0)
+    {
+        insert_heap(&heap_ptr->left_max_heap, element_idx, compare_max_heap);
+        return;
+    }
+    const int pivot = find_heap(&heap_ptr->left_max_heap, compare_max_heap)->value;
+
+    if (pq.data_array[element_idx].value < pivot)
+    {
+        insert_heap(&heap_ptr->left_max_heap, element_idx, compare_max_heap);
+    }
+    else
+    {
+        insert_heap(&heap_ptr->right_min_heap, element_idx, compare_min_heap);
+    }
+
+    while (heap_ptr->left_max_heap.valid_size > heap_ptr->right_min_heap.valid_size + 1)
+    {
+        data *moved_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
+        insert_heap(&heap_ptr->right_min_heap, moved_data - pq.data_array, compare_min_heap);
+    }
+    // move data left to right
+
+    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
+    {
+        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
+        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
+    }
+    // move data right to left
+
+    const int left_valid_size = heap_ptr->left_max_heap.valid_size;
+    const int right_valid_size = heap_ptr->right_min_heap.valid_size;
+}
+
+data *delete_median_heap(median_heap *heap_ptr)
+{
+    int *heap_valid_size = &heap_ptr->valid_size;
+    data *deleted_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
+
+    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
+    {
+        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
+        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
+    }
+    // move data right to left
+    return deleted_data;
+}
+
+data *find_median_heap(median_heap *heap_ptr)
+{
+    while (heap_ptr->left_max_heap.valid_size > heap_ptr->right_min_heap.valid_size + 1)
+    {
+        data *moved_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
+        insert_heap(&heap_ptr->right_min_heap, moved_data - pq.data_array, compare_min_heap);
+    }
+    // move data left to right
+
+    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
+    {
+        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
+        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
+    }
+    // move data right to left
+    return find_heap(&heap_ptr->left_max_heap, compare_max_heap);
 }
 
 void insert(int element)
@@ -178,77 +295,140 @@ void insert(int element)
     pq.size++;
     insert_heap(&pq.min_pq, pq.size - 1, compare_min_heap);
     insert_heap(&pq.max_pq, pq.size - 1, compare_max_heap);
-    // insert_median_heap(&pq.median_pq, pq.size-1);
+    insert_median_heap(&pq.median_pq, pq.size - 1);
 }
 
 int delete_min()
 {
-    return delete_heap(&pq.min_pq, compare_min_heap);
+    if (pq.size <= 0)
+    {
+        return 0;
+    }
+    data *delete_data_ptr = delete_heap(&pq.min_pq, compare_min_heap);
+    delete_data_ptr->deleted++;
+    pq.size--;
+    pq.max_pq.valid_size--;
+    pq.median_pq.left_max_heap.valid_size--;
+
+    return delete_data_ptr->value;
 }
 
 int delete_max()
 {
-    return delete_heap(&pq.max_pq, compare_max_heap);
+    if (pq.size <= 0)
+    {
+        return 0;
+    }
+    data *delete_data_ptr = delete_heap(&pq.max_pq, compare_max_heap);
+    delete_data_ptr->deleted++;
+    pq.size--;
+    pq.max_pq.valid_size--;
+    pq.median_pq.right_min_heap.valid_size--;
+
+    return delete_data_ptr->value;
 }
 
 int delete_median()
 {
-    return 0;
+    if (pq.size <= 0)
+    {
+        return 0;
+    }
+    data *deleted_data_ptr = delete_median_heap(&pq.median_pq);
+    deleted_data_ptr->deleted++;
+    pq.size--;
+    pq.min_pq.valid_size--;
+    pq.max_pq.valid_size--;
+
+    return deleted_data_ptr->value;
 }
 
 int find_min()
 {
-    return find_heap(&pq.min_pq);
+    data *find_data_ptr = find_heap(&pq.min_pq, compare_min_heap);
+    return find_data_ptr->value;
 }
 
 int find_max()
 {
-    return find_heap(&pq.max_pq);
+    data *find_data_ptr = find_heap(&pq.max_pq, compare_max_heap);
+    return find_data_ptr->value;
 }
 
 int find_median()
 {
-    // return find_median_heap(&pq.median_pq);
-    return 0;
+    data *find_data_ptr = find_median_heap(&pq.median_pq);
+    return find_data_ptr->value;
 }
 
 int main()
 {
+    char user_input[kUSER_INPUT_SIZE];
 
-    // int N;
-    // scanf("%d", &N);
-
-    // while (N--)
-    // {
-    //     fgets(user_input, kUSER_INPUT_SIZE, stdin);
-    //     // get user_input
-    // }
-
-    int input[] = {1, 3, 5, 7, 9, 2, 4, 6, 8, 10};
-    const int N = sizeof(input) / sizeof(int);
+    int N;
+    scanf("%d", &N);
+    while (getchar() != '\n')
+    {
+    }
     init_pq(&pq, N);
-
-    for (int i = 0; i < sizeof(input) / sizeof(int); ++i)
+    while (N--)
     {
-        insert(input[i]);
-        // for(int j=0;j<=i;++j){
-        //     printf("{%d ,%d} ",pq.data_array[pq.min_pq.array[j]].value,pq.data_array[pq.min_pq.array[j]].deleted);
-        // }
-        printf("\n");
+        fgets(user_input, kUSER_INPUT_SIZE, stdin);
+        // get user_input
+        if (user_input[0] == 'I')
+        {
+            const int element = atoi(user_input + 2);
+            insert(element);
+        }
+        // insert element
+        else if (user_input[0] == 'D')
+        {
+            if (pq.size <= 0)
+            {
+                break;
+            }
+            const char choice = user_input[2];
+            int deleted_value = 0;
+            if (choice == 'M')
+            {
+                deleted_value = delete_min();
+            }
+            else if (choice == 'X')
+            {
+                deleted_value = delete_max();
+            }
+            else
+            {
+                deleted_value = delete_median();
+            }
+        }
+        // delete
+        else
+        {
+            if (pq.size <= 0)
+            {
+                printf("NULL\n");
+                continue;
+            }
+            const char choice = user_input[2];
+            int find_value = 0;
+            if (choice == 'M')
+            {
+                find_value = find_min();
+            }
+            else if (choice == 'X')
+            {
+                find_value = find_max();
+            }
+            else
+            {
+                find_value = find_median();
+            }
+            printf("%d\n", find_value);
+        }
+        // user_input[0]=='F' find
     }
 
-    // for(int i=0;i<N;++i){
-    //     printf("%d %d\n",pq.data_array[i].value,pq.data_array[i].deleted);
-    // }
-
-    for (int i = 0; i < N / 2; ++i)
-    {
-
-        printf("%d\n", delete_max());
-        printf("%d\n", delete_min());
-    }
-
-    printf("\n");
-
+    free_pq(&pq);
     return 0;
 }
