@@ -95,6 +95,54 @@ void free_pq(priority_queue *pq_ptr)
     free_median_heap(&pq_ptr->median_pq);
 }
 
+void heapify(heap *heap_ptr, const int (*compare)(const data now, const data parent))
+{
+    int *heap_size = &heap_ptr->size;
+    int *heap_arr = heap_ptr->array;
+    data *data_arr = pq.data_array;
+    int now_idx = 0;
+    int left_child_idx = 2 * now_idx + 1;
+    int right_child_idx = 2 * now_idx + 2;
+    int compare_idx;
+
+    while (left_child_idx < *heap_size)
+    {
+        if (right_child_idx < *heap_size)
+        {
+            compare_idx = compare(data_arr[heap_arr[left_child_idx]], data_arr[heap_arr[right_child_idx]]) ? left_child_idx : right_child_idx;
+        }
+        else
+        {
+            compare_idx = left_child_idx;
+        }
+        if (compare(data_arr[heap_arr[now_idx]], data_arr[heap_arr[compare_idx]]))
+        {
+            break;
+        }
+        swap(&heap_arr[now_idx], &heap_arr[compare_idx]);
+        now_idx = compare_idx;
+        left_child_idx = 2 * now_idx + 1;
+        right_child_idx = 2 * now_idx + 2;
+    }
+}
+
+void delete_unvaild_data_heap(heap *heap_ptr, const int (*compare)(const data now, const data parent))
+{
+    int *heap_size = &heap_ptr->size;
+    int *heap_valid_size = &heap_ptr->valid_size;
+    int *heap_arr = heap_ptr->array;
+    data *data_arr = pq.data_array;
+
+    while (*heap_size > 0 && *heap_valid_size > 0 && data_arr[heap_arr[0]].deleted > 0)
+    {
+        // if second valid data shown break delete datas
+        swap(&heap_arr[0], &heap_arr[*heap_size - 1]);
+        (*heap_size)--;
+        heapify(heap_ptr, compare);
+    }
+    return;
+}
+
 void insert_heap(heap *heap_ptr, const int element_idx, const int (*compare)(const data now, const data parent))
 {
     int *heap_size = &heap_ptr->size;
@@ -116,6 +164,7 @@ void insert_heap(heap *heap_ptr, const int element_idx, const int (*compare)(con
         now_idx = parent_idx;
         parent_idx = (now_idx - 1) / 2;
     }
+    delete_unvaild_data_heap(heap_ptr, compare);
     return;
 }
 
@@ -126,96 +175,42 @@ data *delete_heap(heap *heap_ptr, const int (*compare)(const data now, const dat
     int *heap_arr = heap_ptr->array;
     data *data_arr = pq.data_array;
 
-    int valid_data_shown = 0;
     data *deleted_data_ptr = NULL;
 
-    while (*heap_size > 0 && *heap_valid_size > 0)
-    {
-        if (data_arr[heap_arr[0]].deleted == 0)
-        {
-            if (++valid_data_shown >= 2)
-            {
-                break;
-            }
-        }
-        // if second valid data shown break delete datas
-        swap(&heap_arr[0], &heap_arr[*heap_size - 1]);
-        (*heap_size)--;
+    delete_unvaild_data_heap(heap_ptr, compare);
 
-        if (data_arr[heap_arr[*heap_size]].deleted == 0)
-        {
-            deleted_data_ptr = &data_arr[heap_arr[*heap_size]];
-            (*heap_valid_size)--;
-        }
-        // valid data
+    swap(&heap_arr[0], &heap_arr[*heap_size - 1]);
+    (*heap_size)--;
+    (*heap_valid_size)--;
+    deleted_data_ptr = &data_arr[heap_arr[*heap_size]];
+    heapify(heap_ptr, compare);
 
-        int now_idx = 0;
-        int left_child_idx = 2 * now_idx + 1;
-        int right_child_idx = 2 * now_idx + 2;
-        int compare_idx;
+    delete_unvaild_data_heap(heap_ptr, compare);
 
-        while (left_child_idx < *heap_size)
-        {
-            if (right_child_idx < *heap_size)
-            {
-                compare_idx = compare(data_arr[heap_arr[left_child_idx]], data_arr[heap_arr[right_child_idx]]) ? left_child_idx : right_child_idx;
-            }
-            else
-            {
-                compare_idx = left_child_idx;
-            }
-            if (compare(data_arr[heap_arr[now_idx]], data_arr[heap_arr[compare_idx]]))
-            {
-                break;
-            }
-            swap(&heap_arr[now_idx], &heap_arr[compare_idx]);
-            now_idx = compare_idx;
-            left_child_idx = 2 * now_idx + 1;
-            right_child_idx = 2 * now_idx + 2;
-        }
-    }
     return deleted_data_ptr;
 }
 
 data *find_heap(heap *heap_ptr, const int (*compare)(const data now, const data parent))
 {
-    int *heap_size = &heap_ptr->size;
-    int *heap_valid_size = &heap_ptr->valid_size;
-    int *heap_arr = heap_ptr->array;
-    data *data_arr = pq.data_array;
-
-    while (*heap_size > 0 && *heap_valid_size > 0 && data_arr[heap_arr[0]].deleted > 0)
-    {
-        // if second valid data shown break delete datas
-        swap(&heap_arr[0], &heap_arr[*heap_size - 1]);
-        (*heap_size)--;
-
-        int now_idx = 0;
-        int left_child_idx = 2 * now_idx + 1;
-        int right_child_idx = 2 * now_idx + 2;
-        int compare_idx;
-
-        while (left_child_idx < *heap_size)
-        {
-            if (right_child_idx < *heap_size)
-            {
-                compare_idx = compare(data_arr[heap_arr[left_child_idx]], data_arr[heap_arr[right_child_idx]]) ? left_child_idx : right_child_idx;
-            }
-            else
-            {
-                compare_idx = left_child_idx;
-            }
-            if (compare(data_arr[heap_arr[now_idx]], data_arr[heap_arr[compare_idx]]))
-            {
-                break;
-            }
-            swap(&heap_arr[now_idx], &heap_arr[compare_idx]);
-            now_idx = compare_idx;
-            left_child_idx = 2 * now_idx + 1;
-            right_child_idx = 2 * now_idx + 2;
-        }
-    }
+    delete_unvaild_data_heap(heap_ptr, compare);
     return &pq.data_array[heap_ptr->array[0]];
+}
+
+void balance_median_heap(median_heap *heap_ptr)
+{
+    while (heap_ptr->left_max_heap.valid_size > heap_ptr->right_min_heap.valid_size + 1)
+    {
+        data *moved_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
+        insert_heap(&heap_ptr->right_min_heap, moved_data - pq.data_array, compare_min_heap);
+    }
+    // move data left to right
+
+    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
+    {
+        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
+        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
+    }
+    // move data right to left
 }
 
 void insert_median_heap(median_heap *heap_ptr, const int element_idx)
@@ -227,6 +222,9 @@ void insert_median_heap(median_heap *heap_ptr, const int element_idx)
         insert_heap(&heap_ptr->left_max_heap, element_idx, compare_max_heap);
         return;
     }
+
+    balance_median_heap(heap_ptr);
+
     const int pivot = find_heap(&heap_ptr->left_max_heap, compare_max_heap)->value;
 
     if (pq.data_array[element_idx].value < pivot)
@@ -238,53 +236,26 @@ void insert_median_heap(median_heap *heap_ptr, const int element_idx)
         insert_heap(&heap_ptr->right_min_heap, element_idx, compare_min_heap);
     }
 
-    while (heap_ptr->left_max_heap.valid_size > heap_ptr->right_min_heap.valid_size + 1)
-    {
-        data *moved_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
-        insert_heap(&heap_ptr->right_min_heap, moved_data - pq.data_array, compare_min_heap);
-    }
-    // move data left to right
-
-    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
-    {
-        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
-        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
-    }
-    // move data right to left
-
-    const int left_valid_size = heap_ptr->left_max_heap.valid_size;
-    const int right_valid_size = heap_ptr->right_min_heap.valid_size;
+    balance_median_heap(heap_ptr);
 }
 
 data *delete_median_heap(median_heap *heap_ptr)
 {
     int *heap_valid_size = &heap_ptr->valid_size;
-    data *deleted_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
 
-    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
-    {
-        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
-        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
-    }
-    // move data right to left
+    balance_median_heap(heap_ptr);
+
+    data *deleted_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
+    
+    (*heap_valid_size)--;
+
+    balance_median_heap(heap_ptr);
     return deleted_data;
 }
 
 data *find_median_heap(median_heap *heap_ptr)
 {
-    while (heap_ptr->left_max_heap.valid_size > heap_ptr->right_min_heap.valid_size + 1)
-    {
-        data *moved_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
-        insert_heap(&heap_ptr->right_min_heap, moved_data - pq.data_array, compare_min_heap);
-    }
-    // move data left to right
-
-    while (heap_ptr->left_max_heap.valid_size < heap_ptr->right_min_heap.valid_size)
-    {
-        data *moved_data = delete_heap(&heap_ptr->right_min_heap, compare_min_heap);
-        insert_heap(&heap_ptr->left_max_heap, moved_data - pq.data_array, compare_max_heap);
-    }
-    // move data right to left
+    balance_median_heap(heap_ptr);
     return find_heap(&heap_ptr->left_max_heap, compare_max_heap);
 }
 
