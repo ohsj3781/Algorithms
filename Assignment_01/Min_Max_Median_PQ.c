@@ -246,7 +246,7 @@ data *delete_median_heap(median_heap *heap_ptr)
     balance_median_heap(heap_ptr);
 
     data *deleted_data = delete_heap(&heap_ptr->left_max_heap, compare_max_heap);
-    
+
     (*heap_valid_size)--;
 
     balance_median_heap(heap_ptr);
@@ -277,10 +277,23 @@ int delete_min()
     }
     data *delete_data_ptr = delete_heap(&pq.min_pq, compare_min_heap);
     delete_data_ptr->deleted++;
-    pq.size--;
-    pq.max_pq.valid_size--;
-    pq.median_pq.left_max_heap.valid_size--;
-
+    if (--pq.size == 0)
+    {
+        pq.min_pq.size = 0;
+        pq.min_pq.valid_size = 0;
+        pq.max_pq.size = 0;
+        pq.max_pq.valid_size = 0;
+        pq.median_pq.left_max_heap.size = 0;
+        pq.median_pq.left_max_heap.valid_size = 0;
+        pq.median_pq.right_min_heap.size = 0;
+        pq.median_pq.right_min_heap.valid_size = 0;
+        pq.median_pq.valid_size = 0;
+    }
+    else
+    {
+        pq.max_pq.valid_size--;
+        pq.median_pq.left_max_heap.valid_size--;
+    }
     return delete_data_ptr->value;
 }
 
@@ -292,10 +305,23 @@ int delete_max()
     }
     data *delete_data_ptr = delete_heap(&pq.max_pq, compare_max_heap);
     delete_data_ptr->deleted++;
-    pq.size--;
-    pq.max_pq.valid_size--;
-    pq.median_pq.right_min_heap.valid_size--;
-
+    if (--pq.size == 0)
+    {
+        pq.min_pq.size = 0;
+        pq.min_pq.valid_size = 0;
+        pq.max_pq.size = 0;
+        pq.max_pq.valid_size = 0;
+        pq.median_pq.left_max_heap.size = 0;
+        pq.median_pq.left_max_heap.valid_size = 0;
+        pq.median_pq.right_min_heap.size = 0;
+        pq.median_pq.right_min_heap.valid_size = 0;
+        pq.median_pq.valid_size = 0;
+    }
+    else
+    {
+        pq.max_pq.valid_size--;
+        pq.median_pq.left_max_heap.valid_size--;
+    }
     return delete_data_ptr->value;
 }
 
@@ -307,9 +333,23 @@ int delete_median()
     }
     data *deleted_data_ptr = delete_median_heap(&pq.median_pq);
     deleted_data_ptr->deleted++;
-    pq.size--;
-    pq.min_pq.valid_size--;
-    pq.max_pq.valid_size--;
+    if (--pq.size == 0)
+    {
+        pq.min_pq.size = 0;
+        pq.min_pq.valid_size = 0;
+        pq.max_pq.size = 0;
+        pq.max_pq.valid_size = 0;
+        pq.median_pq.left_max_heap.size = 0;
+        pq.median_pq.left_max_heap.valid_size = 0;
+        pq.median_pq.right_min_heap.size = 0;
+        pq.median_pq.right_min_heap.valid_size = 0;
+        pq.median_pq.valid_size = 0;
+    }
+    else
+    {
+        pq.max_pq.valid_size--;
+        pq.median_pq.left_max_heap.valid_size--;
+    }
 
     return deleted_data_ptr->value;
 }
