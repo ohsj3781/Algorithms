@@ -1,36 +1,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
 #define MAX_STR 5
-#define MAX_STR_LEN 120
+#define MAX_STR_LEN 121
 
-#define max(a,b) ((a)>(b) ? (a) : (b)) 
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
-void find_LCS(char str1[], char str2[])
+char *dp;
+
+typedef struct{
+    int idx[MAX_STR];
+    int idx_max[MAX_STR];
+}idxs;
+
+typedef struct
 {
-    static int matrix[MAX_STR_LEN + 1][MAX_STR_LEN + 1];
-    const int str1_len = strlen(str1);
-    const int str2_len = strlen(str2);
+    char data[MAX_STR_LEN];
+    int length;
+} string;
 
-    for (int i = 0; i < MAX_STR_LEN + 1; ++i)
+typedef struct
+{
+    string data[MAX_STR];
+    int n;
+} strings;
+
+void find_LCS(const strings user_input, char *ans)
+{
+    const int N = user_input.n;
+    unsigned long long memsize = 1;
+    for (int i = user_input.n - 1; i >= 0; --i)
     {
-        memset(matrix, 0, (MAX_STR_LEN + 1) * sizeof(int));
+        memsize *= user_input.data[i].length;
     }
 
-    for(int i=1;i<=str1_len;++i){
-        for(int j=1;j<=str2_len;++j){
-            if(str1[i]==str2[j]){
-                matrix[i][j]=matrix[i-1][j-1]+1;
-            }
-            else{
-                matrix[i][j]=max(matrix[i-1][j],matrix[i][j-1]);
-            }
-            printf("%3d ",matrix[i][j]);
-        }
-        printf("\n");
-    }
+    dp = (char *)calloc(memsize, sizeof(char));
 
+
+
+    free(dp);
+    return;
+}
+
+void find_Hirschberg_LCS(const strings user_input, char *ans)
+{
+    unsigned long long mem_size = 1;
+    for (int i = user_input.n; i >= 0; --i)
+    {
+        mem_size *= user_input.data[i].length;
+    }
     return;
 }
 
@@ -43,7 +62,7 @@ int main()
         return (-1);
     }
 
-    char strings[MAX_STR][MAX_STR_LEN + 1];
+    strings user_input;
     const int number_of_strings = fgetc(input_file) - '0';
     while (fgetc(input_file) != '\n')
     {
@@ -57,11 +76,14 @@ int main()
     }
     for (int i = 0; i < number_of_strings; ++i)
     {
-        fgets(strings[i], MAX_STR_LEN, input_file);
-        strings[i][strlen(strings[i]) - 1] = '\0';
+        fgets(user_input.data[i].data, MAX_STR_LEN, input_file);
+        user_input.data[i].length = strlen(user_input.data[i].data);
+        user_input.data[i].data[user_input.data[i].length - 1] = '\0';
     }
     fclose(input_file);
 
-    find_LCS(strings[0],strings[1]);
+    char ans[MAX_STR_LEN];
+
+    find_LCS(user_input, ans);
     return 0;
 }
