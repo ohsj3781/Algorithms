@@ -9,10 +9,11 @@
 
 char *dp;
 
-typedef struct{
+typedef struct
+{
     int idx[MAX_STR];
     int idx_max[MAX_STR];
-}idxs;
+} idxs;
 
 typedef struct
 {
@@ -26,31 +27,63 @@ typedef struct
     int n;
 } strings;
 
-void find_LCS(const strings user_input, char *ans)
+void find_LCS2(strings *user_input, char *ans)
 {
-    const int N = user_input.n;
-    unsigned long long memsize = 1;
-    for (int i = user_input.n - 1; i >= 0; --i)
+    char *str1, *str2;
+    strcpy(str1, user_input->data[0].data);
+    strcpy(str2, user_input->data[1].data);
+
+    const int str1_len = user_input->data[0].length;
+    const int str2_len = user_input->data[1].length;
+
+    const int bias_idx_1 = str2_len + 1;
+    char *dp = (char *)calloc((str1_len + 1) * (bias_idx_1), sizeof(char));
+
+    // find LCS length
+    for (register int idx_1 = 0; idx_1 <= str1_len; ++idx_1)
     {
-        memsize *= user_input.data[i].length;
+        for (register int idx_2 = 0; idx_2 <= str2_len; ++idx_2)
+        {
+            if (idx_1 > 0 && idx_2 > 0 && str1[idx_1 - 1] == str2[idx_2 - 1])
+            {
+                dp[idx_1 * bias_idx_1 + idx_2] = dp[(idx_1 - 1) * bias_idx_1 + (idx_2 - 1)] + 1;
+            }
+            else
+            {
+                dp[idx_1 * bias_idx_1 + idx_2] = max(dp[(idx_1 - 1) * bias_idx_1 + (idx_2)], dp[(idx_1)*bias_idx_1 + (idx_2 - 1)]);
+            }
+        }
     }
 
-    dp = (char *)calloc(memsize, sizeof(char));
+    // backtracking LCS
+    int ans_idx = dp[str1_len * bias_idx_1 + str2_len];
+    ans[ans_idx] = '\0';
+    register int idx_1 = str1_len;
+    register int idx_2 = str2_len;
 
-
+    while (dp[idx_1 * bias_idx_1 + idx_2] != 0)
+    {
+        if (dp[(idx_1 - 1) * bias_idx_1 + (idx_2)] == dp[idx_1 * bias_idx_1 + idx_2])
+        {
+            --idx_1;
+        }
+        else if (dp[(idx_1)*bias_idx_1 + (idx_2 - 1)] == dp[idx_1 * bias_idx_1 + idx_2])
+        {
+            --idx_2;
+        }
+        else
+        {
+            ans[--ans_idx] = str1[idx_1 - 1];
+        }
+    }
 
     free(dp);
+
     return;
 }
 
-void find_Hirschberg_LCS(const strings user_input, char *ans)
+void find_LCS5(strings *user_input, char *ans)
 {
-    unsigned long long mem_size = 1;
-    for (int i = user_input.n; i >= 0; --i)
-    {
-        mem_size *= user_input.data[i].length;
-    }
-    return;
 }
 
 int main()
@@ -84,6 +117,6 @@ int main()
 
     char ans[MAX_STR_LEN];
 
-    find_LCS(user_input, ans);
+    find_LCS(&user_input, ans);
     return 0;
 }
