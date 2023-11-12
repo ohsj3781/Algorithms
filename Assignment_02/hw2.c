@@ -4,12 +4,10 @@
 
 #define MAX_STR 5
 #define MAX_STR_LEN 121
-
+#define MAX_ALLIGNED_STR_LEN 1024
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
 char *dp;
-
-
 
 typedef struct
 {
@@ -45,7 +43,7 @@ void find_LCS2(string *str1, string *str2, string *ans)
     // backtracking LCS
     int ans_idx = dp[str1->len][str2->len];
     ans->data[ans_idx] = '\0';
-    ans->len=ans_idx;
+    ans->len = ans_idx;
     register int idx_1 = str1->len;
     register int idx_2 = str2->len;
 
@@ -113,7 +111,7 @@ void find_LCS3(string *str1, string *str2, string *str3, string *ans)
     // backtracking LCS
     int ans_idx = dp[str1->len][str2->len][str3->len];
     ans->data[ans_idx] = '\0';
-    ans->len=ans_idx;
+    ans->len = ans_idx;
     register int idx_1 = str1->len;
     register int idx_2 = str2->len;
     register int idx_3 = str3->len;
@@ -199,7 +197,7 @@ void find_LCS4(string *str1, string *str2, string *str3, string *str4, string *a
     // backtracking LCS
     int ans_idx = dp[str1->len][str2->len][str3->len][str4->len];
     ans->data[ans_idx] = '\0';
-    ans->len=ans_idx;
+    ans->len = ans_idx;
     register int idx_1 = str1->len;
     register int idx_2 = str2->len;
     register int idx_3 = str3->len;
@@ -302,7 +300,7 @@ void find_LCS5(string *str1, string *str2, string *str3, string *str4, string *s
     // backtracking LCS
     int ans_idx = dp[str1->len][str2->len][str3->len][str4->len][str5->len];
     ans->data[ans_idx] = '\0';
-    ans->len=ans_idx;
+    ans->len = ans_idx;
     register int idx_1 = str1->len;
     register int idx_2 = str2->len;
     register int idx_3 = str3->len;
@@ -365,6 +363,124 @@ void find_LCS5(string *str1, string *str2, string *str3, string *str4, string *s
     return;
 }
 
+void make_alligned_sequence(string *user_input, const int user_input_size, string *ans)
+{
+    char **aligned_str = (char **)calloc(user_input_size, sizeof(char *));
+    for (int i = 0; i < user_input_size; ++i)
+    {
+        aligned_str[i] = (char *)calloc(MAX_ALLIGNED_STR_LEN, sizeof(char));
+    }
+    int *aligned_str_idx = (int *)calloc(user_input_size, sizeof(int));
+
+    char aligned_ans[MAX_ALLIGNED_STR_LEN];
+    int aligned_ans_idx = 0;
+
+    char **last_str_ptr = (char **)calloc(user_input_size, sizeof(char *));
+    char **str_ptr = (char **)calloc(user_input_size, sizeof(char *));
+    for (int i = 0; i < user_input_size; ++i)
+    {
+        last_str_ptr[i] = user_input[i].data;
+        str_ptr[i] = last_str_ptr[i];
+    }
+    // set aligned strings
+    for (int i = 0; i < ans->len; ++i)
+    {
+
+        // find interval between alligned str element
+        int aligned_interval = -1;
+        for (int j = 0; j < user_input_size; ++j)
+        {
+            str_ptr[j] = strchr(last_str_ptr[j], ans->data[i]);
+            aligned_interval = max(aligned_interval, str_ptr[j] - last_str_ptr[j]);
+        }
+
+        for (int str_idx = 0; str_idx < user_input_size; ++str_idx)
+        {
+            char *temp_str_ptr = last_str_ptr[str_idx];
+            for (int j = 0; j < aligned_interval; ++j)
+            {
+                if (temp_str_ptr != str_ptr[str_idx])
+                {
+                    aligned_str[str_idx][aligned_str_idx[str_idx]] = *temp_str_ptr;
+                    ++temp_str_ptr;
+                }
+                else
+                {
+                    aligned_str[str_idx][aligned_str_idx[str_idx]] = '-';
+                }
+                aligned_str_idx[str_idx]++;
+            }
+            aligned_str[str_idx][aligned_str_idx[str_idx]++] = *temp_str_ptr;
+        }
+
+        for (int j = 0; j < aligned_interval; ++j)
+        {
+            aligned_ans[aligned_ans_idx++] = ' ';
+        }
+        aligned_ans[aligned_ans_idx++] = '*';
+
+        for (int j = 0; j < user_input_size; ++j)
+        {
+            last_str_ptr[j] = str_ptr[j] + 1;
+        }
+    }
+
+    for (int i = 0; i < user_input_size; ++i)
+    {
+        str_ptr[i] = last_str_ptr[i];
+    }
+
+    int remain_str_max_len = -1;
+    for (int str_idx = 0; str_idx < user_input_size; ++str_idx)
+    {
+        remain_str_max_len = max(remain_str_max_len, user_input[str_idx].len - (str_ptr[str_idx] - user_input[str_idx].data));
+    }
+
+    for (int str_idx = 0; str_idx < user_input_size; ++str_idx)
+    {
+        for (int remain_idx = 0; remain_idx < remain_str_max_len; ++remain_idx)
+        {
+            if (*str_ptr[str_idx] != '\0')
+            {
+                aligned_str[str_idx][aligned_str_idx[str_idx]] = *str_ptr[str_idx];
+                ++str_ptr[str_idx];
+            }
+            else
+            {
+                aligned_str[str_idx][aligned_str_idx[str_idx]] = '-';
+            }
+            aligned_str_idx[str_idx]++;
+        }
+    }
+
+    FILE* fp=fopen("hw2_output.txt","w");
+
+    // out to hw2.out
+    for (int i = 0; i < user_input_size; ++i)
+    {
+        aligned_str[i][aligned_str_idx[i]] = '\0';
+        //printf("%s\n", aligned_str[i]);
+        fprintf(fp,"%s\n",aligned_str[i]);
+    }
+
+    aligned_ans[aligned_ans_idx] = '\0';
+    //printf("%s", aligned_ans);
+    fprintf(fp,"%s",aligned_ans);
+
+    fclose(fp);
+
+    for (int i = 0; i < user_input_size; ++i)
+    {
+        free(aligned_str[i]);
+    }
+    free(aligned_str);
+
+    free(aligned_str_idx);
+    free(last_str_ptr);
+    free(str_ptr);
+    return;
+}
+
 int main()
 {
     FILE *input_file;
@@ -376,6 +492,7 @@ int main()
 
     string user_input[MAX_STR];
     const int number_of_strings = fgetc(input_file) - '0';
+    unsigned long long mem_size = 1;
     while (fgetc(input_file) != '\n')
     {
     }
@@ -395,6 +512,7 @@ int main()
             user_input[i].data[user_input[i].len - 1] = '\0';
             --user_input[i].len;
         }
+        mem_size *= user_input[i].len;
     }
     fclose(input_file);
 
@@ -409,16 +527,21 @@ int main()
     }
     else if (number_of_strings == 4)
     {
-        find_LCS4(&user_input[0], &user_input[1], &user_input[2], &user_input[3],&ans);
+        find_LCS4(&user_input[0], &user_input[1], &user_input[2], &user_input[3], &ans);
     }
     else
     {
-        find_LCS5(&user_input[0], &user_input[1], &user_input[2], &user_input[3], &user_input[4],&ans);
+        if (mem_size < (1 << 28))
+        {
+            find_LCS5(&user_input[0], &user_input[1], &user_input[2], &user_input[3], &user_input[4], &ans);
+        }
+        else
+        {
+            // find_LCS5_hisberg
+        }
     }
-    // find_LCS2(&user_input[0], &user_input[1], ans);
-    //find_LCS3(&user_input[0], &user_input[1], &user_input[2], ans);
-
-    printf("%s", ans);
+    make_alligned_sequence(user_input, number_of_strings, &ans);
+    // printf("%s", ans);
 
     return 0;
 }
