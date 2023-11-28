@@ -5,35 +5,24 @@
 #define TYPE int
 #define BUFFERSIZE 128
 #define MAXTOKENZEDSIZE 4
-
-char **matrix;
-
-void insertEdge(const TYPE node1, const TYPE node2, const TYPE weight)
+/*
+    delete edge 의 경우 tree를 이루는 edge가 delete되면 새로 계산 아닌경우 계산 하지 않음
+    change edge 의 경우 바뀐 weight의 값이 tree를 이루는 edge들의 weight의 최댓값 초과 일시 계산X, 최댓값 이하일시 계산 O
+    insert edge 의 경우 weight의 값이 tree를 이루는 edge의 weight의 최댓값 초과 계산 X, 최댓값 이하일시 계산 O
+*/
+typedef struct
 {
-    if (matrix[node1][node2] != 0)
-    {
-        return;
-    }
-    matrix[node1][node2] = matrix[node2][node1] = weight;
-}
+    int node1;
+    int node2;
+    int weight;
+} edge;
 
-const TYPE findMST() {}
-
-void deleteEdge(const TYPE node1, const TYPE node2)
+typedef struct
 {
-    matrix[node1][node2] = matrix[node2][node1] = 0;
-    return;
-}
-
-void changeWeight(const TYPE node1, const TYPE node2, const TYPE weight)
-{
-    if (matrix[node1][node2] == 0)
-    {
-        return;
-    }
-    matrix[node1][node2] = matrix[node2][node1] = weight;
-    return;
-}
+    edge *arr;
+    int capacity;
+    int size;
+} vector;
 
 void tokenize_input(char *input, char *tokenized_input[MAXTOKENZEDSIZE + 1])
 {
@@ -50,7 +39,7 @@ void tokenize_input(char *input, char *tokenized_input[MAXTOKENZEDSIZE + 1])
 
 int main()
 {
-
+    //open input file
     char *input_file_name = "mst.in";
     char *output_file_name = "mst.out";
 
@@ -67,17 +56,12 @@ int main()
         fprintf(stderr, "fail to open %s\n", output_file_name);
         return -1;
     }
-
+    //get input
     char input[BUFFERSIZE];
 
     fgets(input, BUFFERSIZE, input_fp);
 
     const int N = atoi(input);
-    matrix = (char **)calloc(N + 1, sizeof(char *));
-    for (int i = 0; i < N + 1; ++i)
-    {
-        matrix[i] = (char *)calloc(N + 1, sizeof(char));
-    }
 
     char *tokenized_input[MAXTOKENZEDSIZE + 1];
     for (int i = 0; i < N; ++i)
@@ -92,31 +76,24 @@ int main()
         }
         else
         {
-            TYPE node1, node2, weight;
-            node1 = atoi(tokenized_input[1]);
-            node2 = atoi(tokenized_input[2]);
+            edge temp_edge;
+            temp_edge.node1 = atoi(tokenized_input[1]);
+            temp_edge.node2 = atoi(tokenized_input[2]);
+            temp_edge.weight = tokenized_input[3] == NULL ? 0 : atoi(tokenized_input[3]);
             if (strcmp(tokenized_input[0], "deleteEdge") == 0)
             {
-                deleteEdge(node1, node2);
-                continue;
+                deleteEdge(temp_edge);
             }
-            weight = atoi(tokenized_input[3]);
-            if (strcmp(tokenized_input[0], "insertEdge") == 0)
+            else if (strcmp(tokenized_input[0], "insertEdge") == 0)
             {
-                insertEdge(node1, node2, weight);
+                insertEdge(temp_edge);
             }
             else
             {
-                changeWeight(node1, node2, weight);
+                changeWeight(temp_edge);
             }
         }
     }
-
-    for (int i = 0; i < N + 1; ++i)
-    {
-        free(matrix[i]);
-    }
-    free(matrix);
 
     fclose(input_fp);
     fclose(output_fp);
