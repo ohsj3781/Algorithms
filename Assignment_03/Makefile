@@ -6,4 +6,4 @@ $(TARGET): $(SRC)
 	$(CXX) -o $@ $^
 
 clean: 
-	rm $(TARGET)
+	rm $(TARGET) mst.out
