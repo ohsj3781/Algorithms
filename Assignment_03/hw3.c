@@ -5,6 +5,7 @@
 #define TYPE int
 #define BUFFERSIZE 128
 #define MAXTOKENZEDSIZE 4
+#define INF 2147483647
 
 typedef struct
 {
@@ -32,6 +33,9 @@ int *nodes_set;
 // number of nodes
 int N;
 int need_to_calc_MST = 1;
+// 0 means make graph //1 means after calc graph disconnected //2 need to calc MST
+int min_MST_wegiht = 0;
+int max_MST_wegiht = INF;
 // 0 is not exist, 1 is in MST, 2 is not in MST
 int **edge_mark;
 int **edge_weight;
@@ -61,6 +65,14 @@ void init_heap()
 
 const int compare(const edge e1, const edge e2)
 {
+    if (edge_weight[e1.node1][e1.node2] == edge_weight[e2.node1][e2.node2])
+    {
+        if (e1.node1 == e2.node1)
+        {
+            return e1.node2 < e2.node2 ? 1 : 0;
+        }
+        return e1.node1 < e2.node1 ? 1 : 0;
+    }
     return edge_weight[e1.node1][e1.node2] < edge_weight[e2.node1][e2.node2] ? 1 : 0;
 }
 
@@ -99,7 +111,9 @@ void insert_heap(edge e)
         h.capacity *= 2;
         h.arr = (edge *)realloc(h.arr, h.capacity * sizeof(edge));
     }
-    h.arr[h.size++] = e;
+    h.arr[h.size].node1 = e.node1;
+    h.arr[h.size].node2 = e.node2;
+    h.size++;
 
     int now_idx = h.size - 1;
     int parent_idx = (now_idx - 1) >> 1;
@@ -184,16 +198,14 @@ void free_set(set *s)
 // main function
 void insertEdge(edge e, const int weight)
 {
-    if (e.node1 > e.node2)
-    {
-        const int temp = e.node1;
-        e.node1 = e.node2;
-        e.node2 = temp;
-    }
     // if edge is already exist ignore
     if (edge_mark[e.node1][e.node2] != 0)
     {
         return;
+    }
+    if (need_to_calc_MST == 1 || weight <= max_MST_wegiht)
+    {
+        need_to_calc_MST = 2;
     }
 
     edge_mark[e.node1][e.node2] = 2;
@@ -208,6 +220,10 @@ void deleteEdge(const edge e)
     if (edge_mark[e.node1][e.node2] == 0)
     {
         return;
+    }
+    if (edge_mark[e.node1][e.node2] == 1)
+    {
+        need_to_calc_MST = 2;
     }
     edge_mark[e.node1][e.node2] = 0;
     int idx = 0;
@@ -229,6 +245,10 @@ void changeWeight(const edge e, const int weight)
     {
         return;
     }
+    if (edge_mark[e.node1][e.node2] == 1 || weight <= max_MST_wegiht)
+    {
+        need_to_calc_MST = 2;
+    }
     edge_weight[e.node1][e.node2] = weight;
     int idx = 0;
     for (idx; idx < h.size; ++idx)
@@ -238,31 +258,36 @@ void changeWeight(const edge e, const int weight)
             break;
         }
     }
-
+    --h.size;
+    swap_edge(&h.arr[idx], &h.arr[h.size]);
     heapify(idx);
+    insert_heap(e);
 }
 
 const int findMST()
 {
-    static int MST_weight_sum = 0;
+    static int return_value = 0;
+    static edge MST_edge[500];
     if (h.size < N - 1)
     {
         return -1;
     }
-    if (!need_to_calc_MST)
+    if (need_to_calc_MST != 2)
     {
-        return MST_weight_sum;
+        return return_value;
     }
-    MST_weight_sum = 0;
+    need_to_calc_MST = 1;
+    return_value = 0;
     // reset nodes_set;
     for (int i = 1; i < N + 1; ++i)
     {
         reset_set(&set_arr[i]);
         push_set(&set_arr[i], i);
     }
+
     int poped_edges = 0;
     int number_of_mst_edges = 0;
-    while (h.size > 0 && number_of_mst_edges < N && h.size >= N - 1 - number_of_mst_edges)
+    while (h.size > 0 && h.size >= N - 1 - number_of_mst_edges)
     {
         const edge now_edge = pop_heap();
         ++poped_edges;
@@ -270,12 +295,16 @@ const int findMST()
         {
             continue;
         }
-        MST_weight_sum += edge_weight[now_edge.node1][now_edge.node2];
-        number_of_mst_edges++;
+        const int weight = edge_weight[now_edge.node1][now_edge.node2];
+        return_value += weight;
         union_set(&set_arr[nodes_set[now_edge.node1]], &set_arr[nodes_set[now_edge.node2]]);
+        MST_edge[number_of_mst_edges].node1 = now_edge.node1;
+        MST_edge[number_of_mst_edges].node2 = now_edge.node2;
+        if (++number_of_mst_edges == N - 1)
+        {
+            break;
+        }
     }
-
-    int return_value = MST_weight_sum;
 
     for (int i = 2; i <= N; ++i)
     {
@@ -287,14 +316,33 @@ const int findMST()
         }
     }
 
+    if (return_value != -1)
+    {
+        need_to_calc_MST = 0;
+        min_MST_wegiht = INF;
+        max_MST_wegiht = 0;
+        for (int i = 0; i < number_of_mst_edges; ++i)
+        {
+            edge_mark[MST_edge[i].node1][MST_edge[i].node2] = -1;
+            const int weight = edge_weight[MST_edge[i].node1][MST_edge[i].node2];
+            min_MST_wegiht = weight < min_MST_wegiht ? weight : min_MST_wegiht;
+            max_MST_wegiht = weight > max_MST_wegiht ? weight : max_MST_wegiht;
+        }
+    }
     h.size += poped_edges;
     for (int i = h.size - 1; i >= 0; --i)
     {
         heapify(i);
     }
 
+    for (int i = 0; i < h.size; ++i)
+    {
+        edge_mark[h.arr[i].node1][h.arr[i].node2] = edge_mark[h.arr[i].node1][h.arr[i].node2] == -1 ? 1 : 2;
+    }
+
     return return_value;
 }
+
 void tokenize_input(char *input, char *tokenized_input[MAXTOKENZEDSIZE + 1])
 {
     int size = 0;
@@ -312,8 +360,8 @@ void tokenize_input(char *input, char *tokenized_input[MAXTOKENZEDSIZE + 1])
 int main()
 {
     // open input file
-    char *input_file_name = "mst.in";
-    char *output_file_name = "mst.out";
+    char *input_file_name = "mst.in1";
+    char *output_file_name = "mst.out_skip";
 
     FILE *input_fp, *output_fp;
 
@@ -384,6 +432,12 @@ int main()
             edge temp_edge;
             temp_edge.node1 = atoi(tokenized_input[1]);
             temp_edge.node2 = atoi(tokenized_input[2]);
+            if (temp_edge.node1 > temp_edge.node2)
+            {
+                const int temp = temp_edge.node1;
+                temp_edge.node1 = temp_edge.node2;
+                temp_edge.node2 = temp;
+            }
             if (strncmp(tokenized_input[0], "deleteEdge", 10) == 0)
             {
                 deleteEdge(temp_edge);
